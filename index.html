@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,14 +12,18 @@ body{
 background: linear-gradient(to right,#e8f5ff,#f6fffa);
 font-family: Arial, sans-serif;
 }
+
 .header{
 background:#0d6efd;
 color:white;
-padding:20px;
-text-align:center;
-font-size:28px;
+padding:18px;
+font-size:26px;
 font-weight:bold;
+display:flex;
+justify-content:space-between;
+align-items:center;
 }
+
 .side-img{
 position:fixed;
 top:120px;
@@ -29,11 +32,38 @@ opacity:0.9;
 }
 .left-img{ left:10px; }
 .right-img{ right:10px; }
+
 .card{
 border-radius:15px;
-box-shadow:0 4px 15px rgba(0,0,0,0.15);
+box-shadow:0 4px 20px rgba(0,0,0,0.15);
 }
-.success-popup{
+
+.search-wrapper{
+position:relative;
+}
+
+.search-icon{
+position:absolute;
+right:10px;
+top:50%;
+transform:translateY(-50%);
+cursor:pointer;
+font-size:18px;
+}
+
+#searchPanel{
+display:none;
+border:1px solid #ddd;
+border-radius:10px;
+max-height:250px;
+overflow-y:auto;
+background:white;
+position:absolute;
+width:100%;
+z-index:10;
+}
+
+.popup{
 display:none;
 position:fixed;
 top:0;
@@ -44,10 +74,12 @@ background:rgba(0,0,0,0.6);
 justify-content:center;
 align-items:center;
 }
-.popup-content{
+
+.popup-box{
 background:white;
 padding:30px;
 border-radius:15px;
+width:350px;
 text-align:center;
 }
 </style>
@@ -56,7 +88,8 @@ text-align:center;
 <body>
 
 <div class="header">
-PHARM-BOT Medicine Delivery System
+<div>PHARM-BOT Medicine Delivery</div>
+<button class="btn btn-light btn-sm" onclick="goLogin()">Staff Login</button>
 </div>
 
 <img src="https://cdn-icons-png.flaticon.com/512/2966/2966487.png" class="side-img left-img">
@@ -65,12 +98,14 @@ PHARM-BOT Medicine Delivery System
 <div class="container mt-5">
 <div class="card p-4">
 
-<h4 class="text-primary">Search Medicine</h4>
-<input type="text" id="selectedMed" class="form-control mt-2" placeholder="Selected Medicine" readonly>
+<h4 class="text-primary">Select Medicine</h4>
 
-<input type="text" id="searchBox" class="form-control" placeholder="Type medicine name...">
+<div class="search-wrapper mt-3">
+<input type="text" id="selectedMed" class="form-control" placeholder="Click search icon to choose medicine" readonly>
+<span class="search-icon" onclick="toggleSearch()">🔍</span>
 
-<div id="results" class="mt-3" style="max-height:300px; overflow-y:auto;"></div>
+<div id="searchPanel"></div>
+</div>
 
 <hr>
 
@@ -90,117 +125,130 @@ PHARM-BOT Medicine Delivery System
 </div>
 </div>
 
-<div class="success-popup" id="popup">
-<div class="popup-content">
+<!-- POPUP -->
+<div id="popup" class="popup">
+<div class="popup-box">
 <h3 class="text-success">Order Placed Successfully!</h3>
 <p id="orderDetails"></p>
-<button class="btn btn-success" onclick="closePopup()">OK</button>
+<button class="btn btn-primary" onclick="closePopup()">OK</button>
 </div>
 </div>
 
 <script>
 
-const medicines = [
-"Paracetamol 500mg","Paracetamol 650mg","Dolo 650mg","Crocin 500mg","Aspirin 75mg","Aspirin 150mg","Aspirin 300mg","Ibuprofen 200mg","Ibuprofen 400mg","Ibuprofen 600mg","Ibuprofen 800mg",
-"Amoxicillin 250mg","Amoxicillin 500mg","Azithromycin 250mg","Azithromycin 500mg","Ciprofloxacin 250mg","Ciprofloxacin 500mg","Ciprofloxacin 750mg","Metformin 500mg","Metformin 850mg","Metformin 1000mg",
-"Omeprazole 20mg","Omeprazole 40mg","Pantoprazole 20mg","Pantoprazole 40mg","Ranitidine 150mg","Ranitidine 300mg","Cetirizine 5mg","Cetirizine 10mg","Loratadine 10mg","Montelukast 5mg","Montelukast 10mg",
-"Salbutamol 2mg","Salbutamol 4mg","Atorvastatin 10mg","Atorvastatin 20mg","Atorvastatin 40mg","Atorvastatin 80mg","Rosuvastatin 5mg","Rosuvastatin 10mg","Rosuvastatin 20mg","Rosuvastatin 40mg",
-"Losartan 25mg","Losartan 50mg","Losartan 100mg","Amlodipine 2.5mg","Amlodipine 5mg","Amlodipine 10mg","Clopidogrel 75mg","Clopidogrel 150mg","Warfarin 1mg","Warfarin 2mg","Warfarin 5mg",
-"Furosemide 20mg","Furosemide 40mg","Furosemide 80mg","Hydrochlorothiazide 12.5mg","Hydrochlorothiazide 25mg","Levothyroxine 25mcg","Levothyroxine 50mcg","Levothyroxine 75mcg","Levothyroxine 100mcg",
-"Prednisolone 5mg","Prednisolone 10mg","Prednisolone 20mg","Diclofenac 50mg","Diclofenac 75mg","Diclofenac 100mg","Tramadol 50mg","Tramadol 100mg","Codeine 15mg","Codeine 30mg","Morphine 10mg","Morphine 30mg",
-"Ondansetron 4mg","Ondansetron 8mg","Domperidone 10mg","Domperidone 30mg","Loperamide 2mg","Vitamin C 500mg","Vitamin D3 1000IU","Vitamin D3 60000IU","Calcium 500mg","Iron 100mg","Folic Acid 5mg","Zinc 20mg",
-"Magnesium 250mg","Glimepiride 1mg","Glimepiride 2mg","Glimepiride 3mg","Gliclazide 40mg","Gliclazide 80mg","Pioglitazone 15mg","Pioglitazone 30mg","Sitagliptin 50mg","Sitagliptin 100mg","Empagliflozin 10mg",
-"Empagliflozin 25mg","Dapagliflozin 5mg","Dapagliflozin 10mg","Metoprolol 25mg","Metoprolol 50mg","Metoprolol 100mg","Propranolol 10mg","Propranolol 20mg","Propranolol 40mg","Atenolol 25mg","Atenolol 50mg",
-"Carvedilol 3.125mg","Carvedilol 6.25mg","Carvedilol 12.5mg","Enalapril 2.5mg","Enalapril 5mg","Enalapril 10mg","Ramipril 2.5mg","Ramipril 5mg","Ramipril 10mg","Lisinopril 5mg","Lisinopril 10mg","Lisinopril 20mg",
-"Telmisartan 20mg","Telmisartan 40mg","Telmisartan 80mg","Valsartan 80mg","Valsartan 160mg","Hydralazine 10mg","Hydralazine 25mg","Nifedipine 10mg","Nifedipine 20mg","Verapamil 40mg","Verapamil 80mg",
-"Diltiazem 30mg","Diltiazem 60mg","Digoxin 0.25mg","Amiodarone 100mg","Amiodarone 200mg","Levofloxacin 250mg","Levofloxacin 500mg","Moxifloxacin 400mg","Clarithromycin 250mg","Clarithromycin 500mg",
-"Doxycycline 100mg","Tetracycline 250mg","Fluconazole 150mg","Fluconazole 200mg","Ketoconazole 200mg","Acyclovir 200mg","Acyclovir 400mg","Acyclovir 800mg","Valacyclovir 500mg","Valacyclovir 1000mg",
-"Oseltamivir 75mg","Alprazolam 0.25mg","Alprazolam 0.5mg","Alprazolam 1mg","Diazepam 2mg","Diazepam 5mg","Diazepam 10mg","Lorazepam 1mg","Lorazepam 2mg","Clonazepam 0.25mg","Clonazepam 0.5mg","Clonazepam 1mg",
-"Sertraline 25mg","Sertraline 50mg","Sertraline 100mg","Fluoxetine 10mg","Fluoxetine 20mg","Fluoxetine 40mg","Escitalopram 5mg","Escitalopram 10mg","Escitalopram 20mg","Paroxetine 10mg","Paroxetine 20mg",
-"Haloperidol 0.5mg","Haloperidol 2mg","Haloperidol 5mg","Risperidone 1mg","Risperidone 2mg","Risperidone 4mg","Olanzapine 2.5mg","Olanzapine 5mg","Olanzapine 10mg","Quetiapine 25mg","Quetiapine 50mg","Quetiapine 100mg",
-"Gabapentin 100mg","Gabapentin 300mg","Gabapentin 400mg","Pregabalin 75mg","Pregabalin 150mg","Carbamazepine 100mg","Carbamazepine 200mg","Phenytoin 50mg","Phenytoin 100mg","Baclofen 10mg","Baclofen 25mg",
-"Methotrexate 2.5mg","Methotrexate 5mg","Methotrexate 10mg","Hydroxychloroquine 200mg","Sulfasalazine 500mg","Leflunomide 10mg","Leflunomide 20mg","Azathioprine 50mg","Cyclosporine 25mg","Cyclosporine 100mg",
-"Allopurinol 100mg","Allopurinol 300mg","Febuxostat 40mg","Febuxostat 80mg","Colchicine 0.5mg","Colchicine 0.6mg","Tamsulosin 0.4mg","Finasteride 1mg","Finasteride 5mg","Dutasteride 0.5mg","Sildenafil 25mg",
-"Sildenafil 50mg","Sildenafil 100mg","Tadalafil 5mg","Tadalafil 10mg","Tadalafil 20mg","Spironolactone 25mg","Spironolactone 50mg","Torsemide 10mg","Torsemide 20mg","Chlorthalidone 12.5mg","Chlorthalidone 25mg",
-"Indapamide 1.5mg","Indapamide 2.5mg","Bisoprolol 2.5mg","Bisoprolol 5mg","Nebivolol 2.5mg","Nebivolol 5mg","Doxazosin 1mg","Doxazosin 2mg","Terazosin 1mg","Terazosin 5mg","Prazosin 1mg","Prazosin 2mg",
-"Clonidine 0.1mg","Methyldopa 250mg","Methyldopa 500mg","Isosorbide Mononitrate 20mg","Isosorbide Mononitrate 40mg","Nitroglycerin 0.4mg","Ranolazine 500mg","Trimetazidine 20mg","Trimetazidine 35mg",
-"Cefadroxil 500mg","Cefuroxime 250mg","Cefuroxime 500mg","Cefpodoxime 100mg","Cefpodoxime 200mg","Linezolid 600mg","Rifaximin 200mg","Rifaximin 400mg","Rifaximin 550mg","Tinidazole 500mg","Albendazole 400mg",
-"Ivermectin 6mg","Ivermectin 12mg","Terbinafine 250mg","Griseofulvin 250mg","Griseofulvin 500mg","Voriconazole 200mg","Itraconazole 100mg","Itraconazole 200mg","Chloroquine 250mg","Mefloquine 250mg",
-"Artemether 20mg + Lumefantrine 120mg","Pyrazinamide 500mg","Ethambutol 400mg","Ethambutol 800mg","Rifampicin 150mg","Rifampicin 450mg","Rifampicin 600mg","Isoniazid 100mg","Isoniazid 300mg",
-"Desloratadine 5mg","Fexofenadine 120mg","Fexofenadine 180mg","Levocetirizine 5mg","Bilastine 20mg","Hydroxyzine 10mg","Hydroxyzine 25mg","Promethazine 10mg","Promethazine 25mg","Cyproheptadine 4mg",
-"Dexamethasone 0.5mg","Dexamethasone 4mg","Methylprednisolone 4mg","Methylprednisolone 8mg","Methylprednisolone 16mg","Deflazacort 6mg","Deflazacort 30mg","Betamethasone 0.5mg","Triamcinolone 4mg",
-"Theophylline 100mg","Theophylline 400mg","Acebrophylline 100mg","Doxofylline 400mg","Formoterol 6mcg","Salmeterol 25mcg","Tiotropium 18mcg","Ipratropium 20mcg","Budesonide 100mcg","Budesonide 200mcg",
-"Fluticasone 50mcg","Fluticasone 125mcg","Montelukast 4mg","Zafirlukast 20mg","Sucralfate 1000mg","Misoprostol 200mcg","Lansoprazole 15mg","Lansoprazole 30mg","Dexlansoprazole 30mg","Esomeprazole 20mg",
-"Esomeprazole 40mg","Hyoscine 10mg","Dicyclomine 10mg","Dicyclomine 20mg","Mebeverine 135mg","Mebeverine 200mg","Pancreatin 10000IU","Pancreatin 25000IU","Ursodeoxycholic Acid 150mg","Ursodeoxycholic Acid 300mg",
-"Lactulose 10g/15ml","Bisacodyl 5mg","Senna 7.5mg","Polyethylene Glycol 3350 17g","Sulfamethoxazole 400mg + Trimethoprim 80mg","Sulfamethoxazole 800mg + Trimethoprim 160mg","Nitrofurantoin 50mg","Nitrofurantoin 100mg",
-"Fosfomycin 3g","Phenazopyridine 100mg","Phenazopyridine 200mg","Solifenacin 5mg","Solifenacin 10mg","Tolterodine 2mg","Tolterodine 4mg","Mirabegron 25mg","Mirabegron 50mg","Oxybutynin 2.5mg","Oxybutynin 5mg",
-"Levodopa 100mg + Carbidopa 25mg","Levodopa 250mg + Carbidopa 25mg","Pramipexole 0.125mg","Pramipexole 0.5mg","Ropinirole 0.25mg","Ropinirole 1mg","Selegiline 5mg","Rasagiline 0.5mg","Rasagiline 1mg",
-"Entacapone 200mg","Amantadine 100mg","Donepezil 5mg","Donepezil 10mg","Memantine 5mg","Memantine 10mg","Rivastigmine 1.5mg","Rivastigmine 3mg","Galantamine 4mg","Galantamine 8mg","Venlafaxine 37.5mg",
-"Venlafaxine 75mg","Venlafaxine 150mg","Duloxetine 20mg","Duloxetine 30mg","Duloxetine 60mg","Desvenlafaxine 50mg","Desvenlafaxine 100mg","Mirtazapine 7.5mg","Mirtazapine 15mg","Mirtazapine 30mg",
-"Amitriptyline 10mg","Amitriptyline 25mg","Amitriptyline 50mg","Nortriptyline 10mg","Nortriptyline 25mg","Imipramine 25mg","Clomipramine 25mg","Clomipramine 75mg","Trazodone 50mg","Trazodone 100mg",
-"Bupropion 150mg","Bupropion 300mg","Lithium Carbonate 300mg","Lithium Carbonate 450mg","Valproate 200mg","Valproate 500mg","Divalproex 250mg","Divalproex 500mg","Lamotrigine 25mg","Lamotrigine 50mg",
-"Lamotrigine 100mg","Topiramate 25mg","Topiramate 50mg","Topiramate 100mg","Zonisamide 50mg","Levetiracetam 250mg","Levetiracetam 500mg","Levetiracetam 750mg","Oxcarbazepine 150mg","Oxcarbazepine 300mg",
-"Vigabatrin 500mg","Lacosamide 50mg","Lacosamide 100mg","Clozapine 25mg","Clozapine 100mg","Aripiprazole 2mg","Aripiprazole 5mg","Aripiprazole 10mg","Aripiprazole 15mg","Ziprasidone 20mg","Ziprasidone 40mg",
-"Lurasidone 40mg","Lurasidone 80mg","Amisulpride 50mg","Amisulpride 100mg","Chlorpromazine 25mg","Chlorpromazine 100mg","Trifluoperazine 1mg","Trifluoperazine 5mg","Flupentixol 0.5mg","Etizolam 0.25mg",
-"Etizolam 0.5mg","Etizolam 1mg","Zolpidem 5mg","Zolpidem 10mg","Zopiclone 7.5mg","Eszopiclone 1mg","Eszopiclone 2mg","Melatonin 3mg","Melatonin 5mg","Modafinil 100mg","Modafinil 200mg","Armodafinil 50mg",
-"Methylphenidate 5mg","Methylphenidate 10mg","Atomoxetine 10mg","Atomoxetine 25mg","Atomoxetine 40mg","Sumatriptan 25mg","Sumatriptan 50mg","Sumatriptan 100mg","Rizatriptan 5mg","Rizatriptan 10mg",
-"Eletriptan 20mg","Eletriptan 40mg","Zolmitriptan 2.5mg","Flunarizine 5mg","Flunarizine 10mg","Prochlorperazine 5mg","Prochlorperazine 25mg","Meclizine 12.5mg","Meclizine 25mg","Betahistine 8mg",
-"Betahistine 16mg","Betahistine 24mg","Cinnarizine 25mg","Cinnarizine 75mg","Piracetam 400mg","Piracetam 800mg","Citicoline 500mg","Vinpocetine 5mg","Vitamins B1/B6/B12 100mg","Thiamine 100mg",
-"Pyridoxine 10mg","Pyridoxine 40mg","Cyanocobalamin 500mcg","Methylcobalamin 500mcg","Methylcobalamin 1500mcg","Biotin 5mg","Alpha Lipoic Acid 100mg","Alpha Lipoic Acid 600mg","Coenzyme Q10 100mg",
-"L-Carnitine 500mg","Omega-3 1000mg","Ferrous Sulfate 200mg","Elemental Iron 30mg","Elemental Iron 60mg","Potassium Chloride 600mg","Sevelamer 400mg","Sevelamer 800mg","Calcium Acetate 667mg",
-"Cinacalcet 30mg","Calcitriol 0.25mcg","Alfacalcidol 0.25mcg","Alendronate 10mg","Alendronate 70mg","Ibandronate 150mg","Risedronate 35mg","Zoledronic Acid 4mg","Zoledronic Acid 5mg","Raloxifene 60mg",
-"Tamoxifen 10mg","Tamoxifen 20mg","Anastrozole 1mg","Letrozole 2.5mg","Exemestane 25mg","Bicalutamide 50mg","Flutamide 250mg","Finasteride 5mg","Dutasteride 0.5mg","Cyclophosphamide 50mg",
-"Capecitabine 500mg","Imatinib 100mg","Imatinib 400mg","Erlotinib 100mg","Gefitinib 250mg","Sorafenib 200mg","Sunitinib 12.5mg","Everolimus 5mg","Thalidomide 100mg","Lenalidomide 10mg","Lenalidomide 25mg"
+function goLogin(){
+window.location="login.html";
+}
+
+const medicines=[
+"Paracetamol 500mg","Paracetamol 650mg","Dolo 650mg","Crocin 500mg",
+"Aspirin 75mg","Ibuprofen 400mg","Amoxicillin 500mg",
+"Azithromycin 500mg","Metformin 500mg","Pantoprazole 40mg",
+"Cetirizine 10mg","Atorvastatin 10mg","Losartan 50mg",
+"Amlodipine 5mg","Furosemide 40mg","Levothyroxine 50mcg",
+"Diclofenac 50mg","Tramadol 50mg","Ondansetron 4mg",
+"Vitamin D3 60000IU","Calcium 500mg","Iron 100mg",
+"Glimepiride 2mg","Sitagliptin 100mg","Metoprolol 50mg",
+"Enalapril 5mg","Ramipril 5mg","Telmisartan 40mg",
+"Nifedipine 20mg","Digoxin 0.25mg","Levofloxacin 500mg",
+"Doxycycline 100mg","Fluconazole 150mg","Acyclovir 400mg",
+"Alprazolam 0.5mg","Diazepam 5mg","Sertraline 50mg",
+"Risperidone 2mg","Gabapentin 300mg","Pregabalin 75mg",
+"Carbamazepine 200mg","Allopurinol 300mg","Colchicine 0.6mg",
+"Tamsulosin 0.4mg","Spironolactone 25mg","Bisoprolol 5mg",
+"Cefuroxime 500mg","Linezolid 600mg","Tinidazole 500mg",
+"Ivermectin 12mg","Oseltamivir 75mg","Clonazepam 0.5mg",
+"Escitalopram 10mg","Olanzapine 5mg","Baclofen 10mg"
 ];
 
+const panel = document.getElementById("searchPanel");
 
-function showResults(list){
-let results=document.getElementById("results");
-results.innerHTML="";
+function toggleSearch() {
+    panel.style.display = "block";
 
-list.forEach(med=>{
-results.innerHTML += `
-<div class="border p-2 mt-1 bg-light" 
-style="cursor:pointer"
-onclick="selectMedicine('${med}')">
-${med}
-</div>`;
-});
+    panel.innerHTML = `
+        <input id="searchInput" class="form-control mb-2" 
+        placeholder="Search medicine..." 
+        onkeyup="filterMed()">
+
+        <div id="medList"></div>
+    `;
+
+    showResults(medicines);
 }
 
-function selectMedicine(med){
-document.getElementById("selectedMed").value = med;
-document.getElementById("results").innerHTML = "";
-document.getElementById("searchBox").value = med;
+function showResults(list) {
+    const container = document.getElementById("medList");
+    container.innerHTML = "";
+
+    list.forEach(m => {
+        container.innerHTML += `
+            <div class="p-2 border bg-light" style="cursor:pointer"
+            onclick="selectMed('${m}')">
+                ${m}
+            </div>
+        `;
+    });
 }
 
-
-
-document.getElementById("searchBox").addEventListener("focus", function(){
-showResults(medicines);
-});
-
-document.getElementById("searchBox").addEventListener("keyup", function(){
-let input=this.value.toLowerCase();
-let filtered = medicines.filter(m=>m.toLowerCase().includes(input));
-showResults(filtered);
-});
-document.addEventListener("click", function(e){
-if(!document.getElementById("searchBox").contains(e.target) &&
-   !document.getElementById("results").contains(e.target)){
-document.getElementById("results").innerHTML="";
+function filterMed() {
+    const input = document.getElementById("searchInput").value.toLowerCase();
+    const filtered = medicines.filter(m => m.toLowerCase().includes(input));
+    showResults(filtered);
 }
+
+function selectMed(med) {
+    document.getElementById("selectedMed").value = med;
+    panel.style.display = "none";
+}
+
+document.addEventListener("click", function(e) {
+    if (!panel.contains(e.target) && !e.target.classList.contains("search-icon")) {
+        panel.style.display = "none";
+    }
 });
+
 function placeOrder(){
-let name=document.getElementById("name").value;
-let floor=document.getElementById("floor").value;
-let room=document.getElementById("room").value;
-let type=document.getElementById("deliveryType").value;
 
-document.getElementById("orderDetails").innerHTML =
-`Patient: ${name}<br>Floor: ${floor}<br>Room: ${room}<br>Delivery: ${type}`;
+let name=document.getElementById("name").value.trim();
+let floor=document.getElementById("floor").value.trim();
+let room=document.getElementById("room").value.trim();
+let med=document.getElementById("selectedMed").value.trim();
+let delivery=document.getElementById("deliveryType").value;
+
+if(!name||!floor||!room||!med){
+alert("Please fill all details");
+return;
+}
+
+let order={
+    name:name,
+    floor:floor,
+    room:room,
+    med:med,
+    delivery:delivery,
+    status:"Pending"
+};
+
+let orders=JSON.parse(localStorage.getItem("orders"))||[];
+orders.push(order);
+localStorage.setItem("orders",JSON.stringify(orders));
+
+document.getElementById("orderDetails").innerHTML=
+`
+Patient: ${name}<br>
+Medicine: ${med}<br>
+Floor: ${floor}<br>
+Room: ${room}<br>
+Delivery: ${delivery}
+`;
 
 document.getElementById("popup").style.display="flex";
+
+document.getElementById("name").value="";
+document.getElementById("floor").value="";
+document.getElementById("room").value="";
+document.getElementById("selectedMed").value="";
 }
 
 function closePopup(){
@@ -211,4 +259,3 @@ document.getElementById("popup").style.display="none";
 
 </body>
 </html>
-```
