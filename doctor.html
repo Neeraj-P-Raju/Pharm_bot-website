@@ -58,10 +58,56 @@ Doctor Dashboard — PHARM BOT Orders
 
 </div>
 </div>
+<!-- Firebase v8 (compatible with your code) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyC0Ylf7UL_r-9CRC8t-HRuMHM_sUHZ2QDQ",
+  authDomain: "pharmbot-delivery.firebaseapp.com",
+  databaseURL: "https://pharmbot-delivery-default-rtdb.firebaseio.com",
+  projectId: "pharmbot-delivery",
+  storageBucket: "pharmbot-delivery.firebasestorage.app",
+  messagingSenderId: "25166514207",
+  appId: "1:25166514207:web:3212ee07a9256cbbafed2a"
+};
 
-let orders = JSON.parse(localStorage.getItem("orders")) || [];
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+</script>
+<script>
+
+db.ref("orders").on("value", snapshot => {
+
+let table = document.getElementById("orderTable");
+table.innerHTML="";
+
+snapshot.forEach(child => {
+let order = child.val();
+let id = child.key;
+
+table.innerHTML += `
+<tr>
+<td>${order.name}</td>
+<td>
+<input value="${order.med}" class="form-control form-control-sm"
+onchange="editMed('${id}',this.value)">
+</td>
+<td>${order.floor}</td>
+<td>${order.room}</td>
+<td>${order.delivery}</td>
+<td>
+${order.status === "Pending"
+    ? `<button class="btn btn-success btn-sm" onclick="approve('${id}')">Approve</button>`
+    : order.status === "Approved"
+        ? `<span class="badge bg-primary">Approved</span>`
+        : `<span class="badge bg-secondary">Delivered</span>`
+}
+</td>
+</tr>`;
+});
+});
 let table = document.getElementById("orderTable");
 
 if(orders.length === 0){
@@ -101,17 +147,17 @@ ${order.status=="Pending"
 });
 }
 
-function editMed(index,value){
-orders[index].med=value;
-localStorage.setItem("orders",JSON.stringify(orders));
+function editMed(id, value){
+    db.ref("orders/" + id).update({
+        med: value
+    });
 }
 
-function approve(index){
-orders[index].status="Approved";
-localStorage.setItem("orders",JSON.stringify(orders));
-location.reload();
+function approve(id){
+    db.ref("orders/" + id).update({
+        status: "Approved"
+    });
 }
-
 </script>
 
 </body>

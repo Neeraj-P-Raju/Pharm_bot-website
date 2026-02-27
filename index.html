@@ -82,6 +82,27 @@ border-radius:15px;
 width:350px;
 text-align:center;
 }
+.statusBox{
+display:flex;
+justify-content:space-between;
+margin-top:15px;
+}
+
+.step{
+flex:1;
+margin:4px;
+padding:8px;
+border-radius:20px;
+background:#ddd;
+text-align:center;
+font-size:13px;
+font-weight:bold;
+}
+
+.activeStep{
+background:#28a745;
+color:white;
+}
 </style>
 </head>
 
@@ -91,7 +112,6 @@ text-align:center;
 <div>PHARM-BOT Medicine Delivery</div>
 <button class="btn btn-light btn-sm" onclick="goLogin()">Staff Login</button>
 </div>
-
 <img src="https://cdn-icons-png.flaticon.com/512/2966/2966487.png" class="side-img left-img">
 <img src="https://cdn-icons-png.flaticon.com/512/4320/4320337.png" class="side-img right-img">
 
@@ -125,15 +145,45 @@ text-align:center;
 </div>
 </div>
 
-<!-- POPUP -->
 <div id="popup" class="popup">
 <div class="popup-box">
+
 <h3 class="text-success">Order Placed Successfully!</h3>
+
 <p id="orderDetails"></p>
-<button class="btn btn-primary" onclick="closePopup()">OK</button>
-</div>
+
+<!-- ORDER STATUS TRACKER -->
+<div class="statusBox">
+<div class="step" id="s1">Placed</div>
+<div class="step" id="s2">Approved</div>
+<div class="step" id="s3">Dispatched</div>
+<div class="step" id="s4">Delivered</div>
 </div>
 
+<br>
+<button class="btn btn-primary" onclick="closePopup()">OK</button>
+
+</div>
+</div>
+<!-- Firebase SDK -->
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyC0Ylf7UL_r-9CRC8t-HRuMHM_sUHZ2QDQ",
+  authDomain: "pharmbot-delivery.firebaseapp.com",
+  databaseURL: "https://pharmbot-delivery-default-rtdb.firebaseio.com",
+  projectId: "pharmbot-delivery",
+  storageBucket: "pharmbot-delivery.firebasestorage.app",
+  messagingSenderId: "25166514207",
+  appId: "1:25166514207:web:3212ee07a9256cbbafed2a"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+</script>
 <script>
 
 function goLogin(){
@@ -230,9 +280,7 @@ let order={
     status:"Pending"
 };
 
-let orders=JSON.parse(localStorage.getItem("orders"))||[];
-orders.push(order);
-localStorage.setItem("orders",JSON.stringify(orders));
+db.ref("orders").push(order);
 
 document.getElementById("orderDetails").innerHTML=
 `
@@ -244,6 +292,7 @@ Delivery: ${delivery}
 `;
 
 document.getElementById("popup").style.display="flex";
+document.getElementById("s1").classList.add("activeStep");
 
 document.getElementById("name").value="";
 document.getElementById("floor").value="";
@@ -256,6 +305,5 @@ document.getElementById("popup").style.display="none";
 }
 
 </script>
-
 </body>
 </html>
